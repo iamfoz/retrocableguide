@@ -1,4 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
+import { APP_CONFIG } from "./src/config.js";
+import { DEMO_CHANNELS } from "./src/guide/demoData.js";
+import { loadGuideData } from "./src/guide/client.js";
 
 const F_MAIN = "Arial, Helvetica, sans-serif";
 const F_CONDENSED = "'Arial Narrow', Arial, Helvetica, sans-serif";
@@ -18,82 +21,6 @@ const LEFT_CHANNEL_WIDTH = LEFT_PANEL_WIDTH - START_COL_WIDTH;
 const NOW_HEADER_WIDTH = 148;
 const TELE_TEXT_WIDTH = FRAME_WIDTH - LEFT_PANEL_WIDTH - NOW_HEADER_WIDTH;
 const BODY_TEXT_WIDTH = FRAME_WIDTH - START_COL_WIDTH - 14;
-
-// --- DATA ---
-const CHANNELS = [
-  { num: 1, name: "Sky One", programmes: [
-    { start: "6:00", title: "Batfink" },
-    { start: "6:30", title: "DJ Kat Show" },
-    { start: "9:25", title: "Hercules: The Legendary Journeys" },
-    { start: "10:15", title: "Xena: Warrior Princess" },
-  ]},
-  { num: 2, name: "Sky 2", programmes: [
-    { start: "6:00", title: "Shop on the Box" },
-    { start: "9:00", title: "Sally Jessy Raphael" },
-    { start: "10:00", title: "Oprah Winfrey" },
-  ]},
-  { num: 3, name: "UK Gold", programmes: [
-    { start: "6:00", title: "Open All Hours" },
-    { start: "6:30", title: "Are You Being Served?" },
-    { start: "7:00", title: "Keeping Up Appearances" },
-    { start: "7:30", title: "Last of the Summer Wine" },
-  ]},
-  { num: 5, name: "UK Living", programmes: [
-    { start: "6:00", title: "Infomercial" },
-    { start: "7:00", title: "Good Morning with Anne and Nick" },
-    { start: "9:00", title: "Supermarket Sweep" },
-  ]},
-  { num: 6, name: "Sky News", programmes: [
-    { start: "6:00", title: "Sky News Sunrise" },
-    { start: "9:00", title: "Sky News at Nine" },
-    { start: "10:00", title: "Sky News at Ten" },
-  ]},
-  { num: 7, name: "CNN", programmes: [
-    { start: "7:00", title: "CNN World News" },
-    { start: "8:00", title: "CNN Moneyline" },
-    { start: "9:00", title: "CNN Newsnight" },
-  ]},
-  { num: 8, name: "Euronews", programmes: [
-    { start: "7:00", title: "News Bulletin" },
-    { start: "8:00", title: "Euronews Magazine" },
-    { start: "9:00", title: "World Business Report" },
-  ]},
-  { num: 9, name: "EBN", programmes: [
-    { start: "7:00", title: "EBN Breakfast: Focus Europe / Focus Asia" },
-    { start: "9:00", title: "Business Day" },
-    { start: "10:00", title: "Markets in Motion" },
-  ]},
-  { num: 10, name: "NCTV", programmes: [
-    { start: "7:00", title: "ScreenScene" },
-    { start: "8:00", title: "The Wire" },
-    { start: "9:00", title: "Local News" },
-  ]},
-  { num: 11, name: "Nick", programmes: [
-    { start: "7:00", title: "Teenage Mutant Hero Turtles" },
-    { start: "7:30", title: "Rugrats" },
-    { start: "8:00", title: "Hey Arnold!" },
-  ]},
-  { num: 12, name: "Eurosport", programmes: [
-    { start: "7:30", title: "Mountain Bike: Grundig / UCI World Cup" },
-    { start: "9:00", title: "Eurosport News" },
-    { start: "9:30", title: "Tour de France Highlights" },
-  ]},
-  { num: 14, name: "Sky Sports 1", programmes: [
-    { start: "7:00", title: "Gillette World Sport Special" },
-    { start: "8:00", title: "Premier League Football Review" },
-    { start: "9:00", title: "Ringside" },
-  ]},
-  { num: 15, name: "Sky Movies", programmes: [
-    { start: "7:30", title: "Baby's Day Out (1994) Cert: PG" },
-    { start: "9:15", title: "The Shawshank Redemption (1994) Cert: 15" },
-    { start: "11:30", title: "Congo (1995) Cert: PG" },
-  ]},
-  { num: 25, name: "Ice", programmes: [
-    { start: "6:30", title: "Iznogoud" },
-    { start: "7:30", title: "Sci-Fi Knightmare" },
-    { start: "9:00", title: "The Outer Limits" },
-  ]},
-];
 
 const PROMOS = [
   {
@@ -410,7 +337,7 @@ function NowOnPanel({ channel, programme }) {
 }
 
 // --- LIVE WINDOW ---
-function LiveWindow({ channel, programme }) {
+function LiveWindow({ channel, programme, videoUrl }) {
   const hue = (channel.num * 27) % 360;
   const previewWidth = 768;
   const previewHeight = FRAME_HEIGHT;
@@ -452,7 +379,7 @@ function LiveWindow({ channel, programme }) {
         }}>
           {!videoFailed ? (
             <video
-              src="/video.mp4"
+              src={videoUrl}
               autoPlay
               muted
               loop
@@ -583,12 +510,13 @@ function ChannelListing({ entries, phase, buildProgress }) {
 }
 
 // --- MAIN ---
-export default function NynexEPG() {
+export default function RetroCableGuide() {
   const [now, setNow] = useState(new Date());
   const [nowOnIndex, setNowOnIndex] = useState(0);
   const [listingPhase, setListingPhase] = useState("now");
   const [buildProgress, setBuildProgress] = useState(0);
   const [listingEntries, setListingEntries] = useState([]);
+  const [channels, setChannels] = useState(DEMO_CHANNELS);
 
   // Clock
   useEffect(() => {
@@ -596,22 +524,56 @@ export default function NynexEPG() {
     return () => clearInterval(t);
   }, []);
 
+  // Guide data
+  useEffect(() => {
+    let cancelled = false;
+
+    async function refreshGuide() {
+      const payload = await loadGuideData();
+      if (cancelled || !payload?.channels?.length) {
+        return;
+      }
+
+      setChannels(payload.channels);
+      setNowOnIndex((prev) => Math.min(prev, payload.channels.length - 1));
+    }
+
+    refreshGuide();
+
+    if (!APP_CONFIG.refreshMinutes) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const intervalId = setInterval(refreshGuide, APP_CONFIG.refreshMinutes * 60 * 1000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+    };
+  }, []);
+
   // Now On rotation
   useEffect(() => {
+    if (channels.length <= 1) {
+      return undefined;
+    }
+
     const t = setInterval(() => {
-      setNowOnIndex(prev => (prev + 1) % CHANNELS.length);
+      setNowOnIndex(prev => (prev + 1) % channels.length);
     }, 5000);
     return () => clearInterval(t);
-  }, []);
+  }, [channels]);
 
   // Build listing entries
   const buildEntries = useCallback((phase) => {
-    return CHANNELS.map(ch => {
+    return channels.map(ch => {
       const progIndex = phase === "now" ? 0 : Math.min(1, ch.programmes.length - 1);
       const prog = ch.programmes[progIndex];
       return { num: ch.num, channelName: ch.name, start: prog.start, title: prog.title };
     });
-  }, []);
+  }, [channels]);
 
   // Listing cycle
   useEffect(() => {
@@ -639,8 +601,9 @@ export default function NynexEPG() {
     };
   }, [listingPhase, buildEntries]);
 
-  const currentChannel = CHANNELS[nowOnIndex];
-  const currentProg = currentChannel.programmes[0];
+  const currentChannel = channels[nowOnIndex] || DEMO_CHANNELS[0];
+  const currentProg = currentChannel.programmes[0] || { title: "Schedule unavailable" };
+  const previewVideoUrl = APP_CONFIG.previewVideoUrl || "/video.mp4";
 
   return (
     <div style={{
@@ -672,7 +635,7 @@ export default function NynexEPG() {
         background: "#1a0000",
         borderBottom: "3px solid #ffffff",
       }}>
-        <LiveWindow channel={currentChannel} programme={currentProg.title} />
+        <LiveWindow channel={currentChannel} programme={currentProg.title} videoUrl={previewVideoUrl} />
       </div>
 
       <div style={{

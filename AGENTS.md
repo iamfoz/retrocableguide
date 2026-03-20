@@ -1,11 +1,11 @@
-# Cable Guide Handoff
+# Retro Cable Guide Handoff
 
 ## Current State
 
-- Project path: `/Users/alexkinch/Projects/alexkinch/nynex-epg`
-- GitHub repo: `github.com/alexkinch/cableguide`
+- Project path: `/Users/alexkinch/Projects/alexkinch/retrocableguide`
+- GitHub repo: `github.com/alexkinch/retrocableguide`
 - Branch: `main`
-- Main implementation file: `nynex-epg.jsx`
+- Main implementation file: `retrocableguide.jsx`
 - Preview video path: `public/video.mp4`
 
 ## What Was Built
@@ -28,7 +28,7 @@
 
 ## Current Layout Constants
 
-These are at the top of `nynex-epg.jsx` and drive most geometry:
+These are at the top of `retrocableguide.jsx` and drive most geometry:
 
 - `FRAME_WIDTH`
 - `FRAME_HEIGHT`
@@ -80,7 +80,7 @@ npm run build
 Transcode a browser-friendly 4:3 preview file:
 
 ```bash
-ffmpeg -i video.mp4 -vf "scale=768:576:flags=lanczos,setsar=1,setdar=4/3" -c:v libx264 -crf 18 -preset slow -pix_fmt yuv420p -c:a aac -b:a 192k /Users/alexkinch/Projects/alexkinch/nynex-epg/public/video.mp4
+ffmpeg -i video.mp4 -vf "scale=768:576:flags=lanczos,setsar=1,setdar=4/3" -c:v libx264 -crf 18 -preset slow -pix_fmt yuv420p -c:a aac -b:a 192k /Users/alexkinch/Projects/alexkinch/retrocableguide/public/video.mp4
 ```
 
 ## Final Instruction

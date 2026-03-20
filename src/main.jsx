@@ -1,4 +1,4 @@
 import { createRoot } from "react-dom/client";
-import NynexEPG from "../nynex-epg.jsx";
+import RetroCableGuide from "../retrocableguide.jsx";
 
-createRoot(document.getElementById("root")).render(<NynexEPG />);
+createRoot(document.getElementById("root")).render(<RetroCableGuide />);
