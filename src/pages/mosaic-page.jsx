@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { APP_CONFIG } from "./config.js";
-import { loadGuideData } from "./guide/client.js";
-import { StreamMedia } from "./components/stream-media.jsx";
+import { APP_CONFIG } from "../config.js";
+import { loadGuideData } from "../guide/client.js";
+import { StreamMedia } from "../components/stream-media.jsx";
 
 const FRAME_WIDTH = 720;
 const FRAME_HEIGHT = 576;

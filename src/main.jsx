@@ -1,6 +1,6 @@
 import { createRoot } from "react-dom/client";
-import RetroCableGuide from "../retrocableguide.jsx";
-import MosaicPage from "./mosaic.jsx";
+import RetroCableGuide from "./pages/guide-page.jsx";
+import MosaicPage from "./pages/mosaic-page.jsx";
 
 const path = window.location.pathname.replace(/\/+$/, "") || "/";
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { APP_CONFIG } from "./src/config.js";
-import { loadGuideData } from "./src/guide/client.js";
+import { APP_CONFIG } from "../config.js";
+import { loadGuideData } from "../guide/client.js";
 
 const F_MAIN = "Arial, Helvetica, sans-serif";
 const F_CONDENSED = "'Arial Narrow', Arial, Helvetica, sans-serif";

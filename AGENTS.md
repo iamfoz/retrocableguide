@@ -5,10 +5,10 @@
 - Project path: `/Users/alexkinch/Projects/alexkinch/retrocableguide`
 - GitHub repo: `github.com/alexkinch/retrocableguide`
 - Branch: `main`
-- Main implementation file: `retrocableguide.jsx`
+- Main guide page file: `src/pages/guide-page.jsx`
 - Main config file: `src/config.js`
 - Guide logo asset: `public/guide-logo.png`
-- Mosaic page: `src/mosaic.jsx`
+- Mosaic page: `src/pages/mosaic-page.jsx`
 
 ## What Was Built
 
@@ -43,7 +43,7 @@
 
 ## Current Layout Constants
 
-These are at the top of `retrocableguide.jsx` and drive most geometry:
+These are at the top of `src/pages/guide-page.jsx` and drive most geometry:
 
 - `FRAME_WIDTH`
 - `FRAME_HEIGHT`
