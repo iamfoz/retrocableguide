@@ -2,6 +2,14 @@
 
 A PAL-era cable TV guide recreation built with React and Vite. The UI targets a 720x576 frame and faithfully recreates the look of 1990s UK cable listings channels, loading live channel and programme data from configurable M3U and XMLTV feeds.
 
+## Reference
+
+The two styles are based on real 1990s UK cable guide captures:
+
+| Nynex | Telewest |
+|-------|----------|
+| ![Nynex reference](docs/reference-nynex.png) | ![Telewest reference](docs/reference-telewest.png) |
+
 ## Features
 
 - Two selectable visual styles: **Nynex** (default) and **Telewest**, toggled via config
