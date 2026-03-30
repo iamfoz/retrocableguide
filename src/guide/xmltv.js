@@ -1,3 +1,5 @@
+import { parseXmltv } from "@iptv/xmltv";
+import { parseM3U } from "@iptv/playlist";
 import { buildDemoGuidePayload } from "./demoData.js";
 
 const STALE_SCHEDULE_WINDOW_MS = 6 * 60 * 60 * 1000;
@@ -13,17 +15,6 @@ function decodeXmlEntities(text) {
     .replace(/&#([0-9]+);/g, (_, dec) => String.fromCodePoint(parseInt(dec, 10)));
 }
 
-function parseAttributes(input) {
-  const attributes = {};
-  const attrRegex = /([\w:-]+)="([^"]*)"/g;
-  let match = attrRegex.exec(input);
-  while (match) {
-    attributes[match[1]] = decodeXmlEntities(match[2]);
-    match = attrRegex.exec(input);
-  }
-  return attributes;
-}
-
 function normaliseName(value) {
   return value
     .toLowerCase()
@@ -35,47 +26,6 @@ function normaliseName(value) {
 function extractChannelNumber(value) {
   const match = value?.match(/\b(\d{1,4})\b/);
   return match ? Number(match[1]) : null;
-}
-
-function getFirstTagValue(xml, tagName) {
-  const match = xml.match(new RegExp(`<${tagName}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${tagName}>`, "i"));
-  return match ? decodeXmlEntities(match[1].trim()) : "";
-}
-
-function parseXmltvDate(value) {
-  if (!value) {
-    return null;
-  }
-
-  const trimmed = value.trim();
-  const match = trimmed.match(
-    /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})?(?:\s*([+-]\d{4}|Z))?$/,
-  );
-
-  if (!match) {
-    return null;
-  }
-
-  const [, year, month, day, hour, minute, second = "00", offset] = match;
-  const utcMillis = Date.UTC(
-    Number(year),
-    Number(month) - 1,
-    Number(day),
-    Number(hour),
-    Number(minute),
-    Number(second),
-  );
-
-  if (!offset || offset === "Z") {
-    return new Date(utcMillis);
-  }
-
-  const sign = offset[0] === "+" ? 1 : -1;
-  const offsetHours = Number(offset.slice(1, 3));
-  const offsetMinutes = Number(offset.slice(3, 5));
-  const offsetMillis = sign * ((offsetHours * 60) + offsetMinutes) * 60 * 1000;
-
-  return new Date(utcMillis - offsetMillis);
 }
 
 function formatTimeValue(date, timeFormat) {
@@ -95,95 +45,59 @@ function formatProgrammeTime(date, timeFormat) {
   return formatTimeValue(date, timeFormat);
 }
 
-function parseProgrammeBlocks(xml) {
+function parseXmltvData(xml) {
+  const result = parseXmltv(xml);
+
+  const channels = result.channels.map((ch) => ({
+    id: ch.id || "",
+    displayNames: (ch.displayName || []).map((d) => decodeXmlEntities(d._value)),
+    iconUrl: ch.icon?.[0]?.src || "",
+  }));
+
+  const seen = new Set();
   const programmes = [];
-  const programmeRegex = /<programme\b([^>]*)>([\s\S]*?)<\/programme>/g;
-  let match = programmeRegex.exec(xml);
-
-  while (match) {
-    const attributes = parseAttributes(match[1]);
-    const body = match[2];
+  for (const p of result.programmes) {
+    const key = `${p.channel}|${p.start}|${p.title?.[0]?._value}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
     programmes.push({
-      channel: attributes.channel || "",
-      start: parseXmltvDate(attributes.start),
-      stop: parseXmltvDate(attributes.stop),
-      title: getFirstTagValue(body, "title") || "Unknown Programme",
-      subTitle: getFirstTagValue(body, "sub-title"),
+      channel: p.channel || "",
+      start: p.start ? new Date(p.start) : null,
+      stop: p.stop ? new Date(p.stop) : null,
+      title: decodeXmlEntities(p.title?.[0]?._value || "Unknown Programme"),
+      subTitle: decodeXmlEntities(p.subTitle?.[0]?._value || ""),
     });
-    match = programmeRegex.exec(xml);
   }
 
-  return programmes;
-}
-
-function parseChannelBlocks(xml) {
-  const channels = [];
-  const channelRegex = /<channel\b([^>]*)>([\s\S]*?)<\/channel>/g;
-  let match = channelRegex.exec(xml);
-
-  while (match) {
-    const attributes = parseAttributes(match[1]);
-    const body = match[2];
-    const displayNameRegex = /<display-name(?:\s[^>]*)?>([\s\S]*?)<\/display-name>/g;
-    const displayNames = [];
-    let displayNameMatch = displayNameRegex.exec(body);
-
-    while (displayNameMatch) {
-      displayNames.push(decodeXmlEntities(displayNameMatch[1].trim()));
-      displayNameMatch = displayNameRegex.exec(body);
-    }
-
-    const iconMatch = body.match(/<icon\b[^>]*src="([^"]+)"[^>]*\/?>/i);
-
-    channels.push({
-      id: attributes.id || "",
-      displayNames,
-      iconUrl: iconMatch ? decodeXmlEntities(iconMatch[1]) : "",
-    });
-
-    match = channelRegex.exec(xml);
-  }
-
-  return channels;
+  return { channels, programmes };
 }
 
 function stripChannelPrefix(name) {
   return name.replace(/^[A-Z]{2}\s*(?:\||-)\s*/i, "").trim();
 }
 
-function parseM3uPlaylist(text, config) {
-  const lines = text
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
+function parsePlaylist(text, config) {
+  const result = parseM3U(text);
+
   const entries = [];
-
-  for (let index = 0; index < lines.length; index += 1) {
-    const line = lines[index];
-    if (!line.startsWith("#EXTINF:")) {
-      continue;
-    }
-
-    const [metadataPart, namePart = ""] = line.split(/,(.*)/s);
-    const attributes = parseAttributes(metadataPart);
-    const streamUrl = lines[index + 1] && !lines[index + 1].startsWith("#")
-      ? lines[index + 1]
-      : "";
-    const rawName = attributes["tvg-name"] || namePart.trim() || "Unknown Channel";
-    const groupTitle = attributes["group-title"] || "";
+  for (const ch of result.channels) {
+    const groupTitle = ch.groupTitle || "";
 
     if (config.allowedGroups?.length && !config.allowedGroups.includes(groupTitle)) {
       continue;
     }
 
+    const rawName = ch.tvgName || ch.name || "Unknown Channel";
+    const extras = ch.extras || {};
+
     entries.push({
-      num: Number(attributes["channel-number"] || attributes["tvg-chno"] || 0),
+      num: Number(extras["channel-number"] || extras["tvg-chno"] || 0),
       name: config.stripNamePrefixes ? stripChannelPrefix(rawName) : rawName,
       rawName,
       groupTitle,
-      xmltvId: attributes["tvg-id"] || "",
-      logoUrl: attributes["tvg-logo"] || "",
-      streamUrl,
+      xmltvId: ch.tvgId || "",
+      logoUrl: ch.tvgLogo || "",
+      streamUrl: ch.url || "",
     });
   }
 
@@ -332,11 +246,11 @@ export function normalizeGuideData(programmes, xmltvChannels, playlistEntries, t
     }));
 
     if (!normalizedProgrammes.length) {
-      normalizedProgrammes.push({ start: "--:--", title: "Schedule unavailable" });
+      normalizedProgrammes.push({ start: "--:--", title: "No information available" });
     }
 
     if (normalizedProgrammes.length === 1) {
-      normalizedProgrammes.push({ start: "--:--", title: "Next unavailable" });
+      normalizedProgrammes.push({ start: "--:--", title: "No information available" });
     }
 
     return {
@@ -368,12 +282,11 @@ export async function buildGuidePayload(config, now = new Date()) {
   }
 
   const [m3uText, xml] = await Promise.all([m3uResponse.text(), xmltvResponse.text()]);
-  const playlistEntries = parseM3uPlaylist(m3uText, config);
+  const playlistEntries = parsePlaylist(m3uText, config);
   const limitedEntries = config.channelLimit
     ? playlistEntries.slice(0, config.channelLimit)
     : playlistEntries;
-  const xmltvChannels = parseChannelBlocks(xml);
-  const programmes = parseProgrammeBlocks(xml);
+  const { channels: xmltvChannels, programmes } = parseXmltvData(xml);
 
   return {
     source: "xmltv+m3u",
