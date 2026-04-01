@@ -119,7 +119,8 @@ A standalone teletext page generator lives in `src/teletext/` (all `.mjs` files)
 - `src/teletext/schedule-page.mjs` — per-channel schedule page generator (today/tomorrow, carousel)
 - `src/teletext/generator.mjs` — orchestrator: fetches M3U+XMLTV, matches channels, generates all pages
 - `src/teletext/config.mjs` — teletext-specific configuration
-- `scripts/generate-teletext.mjs` — CLI: generates `.tti` files from live feed data
+- `scripts/generate-teletext.mjs` — CLI: generates `.tti` files from live feed data (one-shot)
+- `scripts/teletext-server.mjs` — long-running server: regenerates `.tti` files on a timer (default 15m)
 - `scripts/build-teletext-t42.mjs` — CLI: compiles `.tti` files into a `.t42` binary (requires `~/Projects/TheMarco/teletext`)
 
 ### Teletext Config (`src/teletext/config.mjs`)
@@ -147,15 +148,28 @@ User navigation: press `1` then channel number for today, `2` then channel numbe
 ### Usage
 
 ```bash
-# Generate .tti files from live XMLTV/M3U data
+# Generate .tti files from live XMLTV/M3U data (one-shot)
 node scripts/generate-teletext.mjs --output-dir ./teletext-pages
 
-# Compile to .t42 for browser viewer or vbit2
+# Run as a long-running server, regenerating every 15 minutes
+# Point --output-dir at vbit2's pages directory for live updates
+node scripts/teletext-server.mjs --output-dir ./teletext-pages --interval 15
+
+# Compile to .t42 for browser viewer (not needed for vbit2, which reads .tti directly)
 node scripts/build-teletext-t42.mjs --input-dir ./teletext-pages
 
 # View in TheMarco's browser viewer (load the .t42 via its "Load .t42 file" button)
 cd ~/Projects/TheMarco/teletext && npm start
 ```
+
+### Schedule Page Behaviour
+
+Based on analysis of off-air TV Today captures (23 Jan 1999):
+
+- **Broadcast day**: "Today" runs 06:00–06:00, capturing the overnight tail from the previous evening. "Tomorrow" runs midnight–midnight (full calendar day).
+- **No time-trimming**: the full day's schedule is always shown; past programmes are not removed.
+- **Row 23 pagination**: single-page schedules have a blank row 23. Multi-page carousels show "Later programmes follow>>>>" on earlier subpages, "Earlier programmes follow>>>>" on the last subpage.
+- **Date header spans**: when a subpage contains programmes after midnight, the header shows both days (e.g. "Sat 23 Jan - Sun 24 Jan").
 
 ### Technical Notes
 
@@ -164,6 +178,7 @@ cd ~/Projects/TheMarco/teletext && npm start
 - Double-height rows emit both top and bottom half rows
 - Fastext links: Red=Prev channel, Green=Next channel, Yellow=Index, Cyan=Toggle day
 - The `.mjs` extension is required because the main project is CJS but these files use ESM
+- vbit2 reads `.tti` files directly from a directory; the `.t42` compile step is only needed for browser viewers
 
 ## Known Remaining Issues / Likely Next Steps
 

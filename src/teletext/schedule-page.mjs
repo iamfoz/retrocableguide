@@ -20,7 +20,7 @@ import {
 // Rows 7-20: programme listings with wrapping (14 rows available)
 // Row 21:   blank (blue bg)
 // Row 22:   mosaic separator
-// Row 23:   "Later programmes follow >>>>" (yellow on blue)
+// Row 23:   "Earlier/Later programmes follow>>>>" or blank (yellow on blue)
 
 const FIRST_ROW = 7;
 const LAST_ROW = 20;
@@ -100,6 +100,7 @@ function buildScheduleSubpage({
   pageNumber,
   programmes,
   dateStr,
+  paginationHint,
 }) {
   const rows = [];
 
@@ -146,14 +147,29 @@ function buildScheduleSubpage({
   // Row 22: mosaic separator
   rows.push(mosaicSeparator(22));
 
-  // Row 23: "Later programmes follow >>>>" (always shown, yellow on blue)
-  rows.push({
-    index: 23,
-    content:
-      cc(CC.BLUE) + cc(CC.NEW_BG) +
-      cc(CC.YELLOW) + " Later programmes follow " +
-      cc(CC.FLASH) + ">>>>",
-  });
+  // Row 23: pagination hint (Earlier/Later) or blank for single pages.
+  // Matches the TV Today reference: "Earlier programmes follow>>>>" on later
+  // subpages, "Later programmes follow>>>>" on earlier subpages, blank when
+  // all programmes fit on one page.
+  if (paginationHint === "later") {
+    rows.push({
+      index: 23,
+      content:
+        cc(CC.BLUE) + cc(CC.NEW_BG) +
+        cc(CC.YELLOW) + " Later programmes follow" +
+        cc(CC.FLASH) + ">>>>",
+    });
+  } else if (paginationHint === "earlier") {
+    rows.push({
+      index: 23,
+      content:
+        cc(CC.BLUE) + cc(CC.NEW_BG) +
+        cc(CC.YELLOW) + " Earlier programmes follow" +
+        cc(CC.FLASH) + ">>>>",
+    });
+  } else {
+    rows.push(blueBgRow(23, "", CC.YELLOW));
+  }
 
   return rows;
 }
@@ -164,6 +180,7 @@ export function generateSchedulePages({
   channelNumber,
   programmes,
   date,
+  spansNextDay,
   dateLabel,
   magazine,
   page,
@@ -173,7 +190,10 @@ export function generateSchedulePages({
   otherDayPage,
   indexPage,
 }) {
-  const dateStr = formatDateShort(date);
+  const baseDateStr = formatDateShort(date);
+  const spanDateStr = baseDateStr + " - " + formatDateShort(
+    new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1)
+  );
 
   const fastext = {
     red: prevPage,
@@ -187,6 +207,16 @@ export function generateSchedulePages({
   const pageNumber = (magazine << 8) | page;
   const paginatedPages = paginateProgrammes(programmes);
 
+  // Midnight boundary for this date — programmes starting at or after this
+  // time mean the subpage spans into the next calendar day.
+  const midnight = new Date(date);
+  midnight.setHours(24, 0, 0, 0);
+
+  function subpageDateStr(progs) {
+    if (!spansNextDay) return baseDateStr;
+    return progs.some((p) => p.start >= midnight) ? spanDateStr : baseDateStr;
+  }
+
   if (paginatedPages.length === 1) {
     const rows = buildScheduleSubpage({
       serviceName,
@@ -194,7 +224,8 @@ export function generateSchedulePages({
       channelNumber,
       pageNumber,
       programmes: paginatedPages[0],
-      dateStr,
+      dateStr: subpageDateStr(paginatedPages[0]),
+      paginationHint: null,
     });
     return buildPage({
       description: `${channelName} ${dateLabel}`,
@@ -206,14 +237,16 @@ export function generateSchedulePages({
     });
   }
 
-  const subpages = paginatedPages.map((pageProgrammes) =>
+  const subpages = paginatedPages.map((pageProgrammes, i) =>
     buildScheduleSubpage({
       serviceName,
       channelName,
       channelNumber,
       pageNumber,
       programmes: pageProgrammes,
-      dateStr,
+      dateStr: subpageDateStr(pageProgrammes),
+      // First subpage(s) say "Later", last subpage(s) say "Earlier"
+      paginationHint: i < paginatedPages.length - 1 ? "later" : "earlier",
     })
   );
 

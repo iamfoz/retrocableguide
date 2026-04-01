@@ -26,7 +26,7 @@ function buildIndexSubpage(channels, subpageIndex, totalSubpages, config) {
 
   // Row 3: column headers in white
   const hdrLeft = pad("Channel Name", 15) + "Chan";
-  const hdrRight = "  " + pad("Channel Name", 13) + "Chan";
+  const hdrRight = " " + pad("Channel Name", 14) + "Chan";
   rows.push({ index: 3, content: cc(CC.WHITE) + hdrLeft + hdrRight });
 
   // Rows 4-18: two-column channel listing (15 rows)

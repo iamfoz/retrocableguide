@@ -176,20 +176,35 @@ function buildSlotMap(channelData, config) {
   return map;
 }
 
-function filterProgrammesByDay(programmes, date) {
+// Filter programmes for a broadcast day.
+// For "today" pages, startHour=6 captures the overnight tail from the previous
+// evening (06:00 today → 06:00 tomorrow), matching UK broadcast convention.
+// For "tomorrow" pages, startHour=0 shows the full day from midnight.
+// Returns { programmes, spansNextDay } where spansNextDay is true if any
+// programme starts after midnight (i.e. the schedule crosses into the next
+// calendar day).
+function filterProgrammesByDay(programmes, date, startHour = 0) {
   const dayStart = new Date(date);
-  dayStart.setHours(0, 0, 0, 0);
-  const dayEnd = new Date(dayStart);
+  dayStart.setHours(startHour, 0, 0, 0);
+  const dayEnd = new Date(date);
+  dayEnd.setHours(startHour, 0, 0, 0);
   dayEnd.setDate(dayEnd.getDate() + 1);
 
-  return programmes
+  const midnight = new Date(date);
+  midnight.setHours(0, 0, 0, 0);
+  midnight.setDate(midnight.getDate() + 1);
+
+  const filtered = programmes
     .filter((p) => {
-      // Include if the programme overlaps with the day at all
       const starts = p.start;
       const stops = p.stop || new Date(starts.getTime() + 30 * 60000);
       return starts < dayEnd && stops > dayStart;
     })
     .sort((a, b) => a.start - b.start);
+
+  const spansNextDay = filtered.some((p) => p.start >= midnight);
+
+  return { programmes: filtered, spansNextDay };
 }
 
 export async function generateTeletext(config) {
@@ -237,8 +252,8 @@ export async function generateTeletext(config) {
     const tomorrowMag = (tomorrowPage >> 8) & 0x7;
     const tomorrowPg = tomorrowPage & 0xff;
 
-    const todayProgrammes = filterProgrammesByDay(ch.programmes, today);
-    const tomorrowProgrammes = filterProgrammesByDay(ch.programmes, tomorrow);
+    const todayResult = filterProgrammesByDay(ch.programmes, today, 6);
+    const tomorrowResult = filterProgrammesByDay(ch.programmes, tomorrow, 0);
 
     // Find prev/next channel pages for fastext navigation
     const chIndex = channelsWithSlots.indexOf(ch);
@@ -255,8 +270,9 @@ export async function generateTeletext(config) {
       serviceName: config.serviceName,
       channelName: ch.name,
       channelNumber: ch.displayNum,
-      programmes: todayProgrammes,
+      programmes: todayResult.programmes,
       date: today,
+      spansNextDay: todayResult.spansNextDay,
       dateLabel: "TODAY",
       magazine: todayMag,
       page: todayPg,
@@ -272,8 +288,9 @@ export async function generateTeletext(config) {
       serviceName: config.serviceName,
       channelName: ch.name,
       channelNumber: ch.displayNum,
-      programmes: tomorrowProgrammes,
+      programmes: tomorrowResult.programmes,
       date: tomorrow,
+      spansNextDay: tomorrowResult.spansNextDay,
       dateLabel: "TOMORROW",
       magazine: tomorrowMag,
       page: tomorrowPg,
