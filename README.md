@@ -135,7 +135,7 @@ promos: [
 
 ## Teletext
 
-A standalone teletext page generator produces TTI files compatible with [vbit2](https://github.com/peterkvt80/vbit2) for output on a Raspberry Pi, or `.t42` files for browser-based viewers. The page layout is modelled on off-air captures of ITV's _TV Today_ service from 1999.
+A standalone teletext page generator produces TTI files compatible with [vbit2](https://github.com/peterkvt80/vbit2) for output on a Raspberry Pi, or `.t42` files for browser-based viewers. The page layout is modelled on off-air captures of the cable channel guide service from 1999.
 
 ### Pages
 
