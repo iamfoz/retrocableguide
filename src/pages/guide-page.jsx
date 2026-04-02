@@ -4,8 +4,8 @@ import { loadGuideData } from "../guide/client.js";
 import { CrtOverlay } from "../components/crt-overlay.jsx";
 
 const F_MAIN = "Arial, Helvetica, sans-serif";
-const F_UI = "Futura, 'Futura PT', 'Century Gothic', Arial, sans-serif";
-const F_TELETEXT = "Georgia, Palatino, 'Times New Roman', serif";
+const F_UI = "Jost, Futura, 'Futura PT', 'Century Gothic', Arial, sans-serif";
+const F_TELETEXT = "'Libre Baskerville', Georgia, Palatino, 'Times New Roman', serif";
 const IS_NYNEX = APP_CONFIG.guideStyle === "nynex";
 const SHOW_PROMOS = APP_CONFIG.previewContentMode === "promo";
 const FRAME_WIDTH = 720;
@@ -260,7 +260,7 @@ function CalendarBadge({ date }) {
         top: "30px",
         left: 0,
         right: 0,
-        fontFamily: "'Bodoni 72', 'Didot', 'Times New Roman', serif",
+        fontFamily: "'Libre Bodoni', 'Bodoni 72', 'Didot', 'Times New Roman', serif",
         fontWeight: 900,
         fontSize: "48px",
         color: "#150c02",
