@@ -6,7 +6,7 @@ export const APP_CONFIG = {
   previewVideoMode: "channel",
   previewFixedChannel: null,
   previewVideoUrl: "",
-  previewChannels: [401, 402, 403, 404, 405, 406, 407, 408, 409, 410],
+  previewChannels: [1,2,3,4,5,6,12,14,16,17,22,24,37,39,54],
   previewCycleSeconds: 15,
   previewTransitions: [
     "blockDissolve",
@@ -20,11 +20,11 @@ export const APP_CONFIG = {
   previewTransitionMode: "random",
   previewTransitionSeconds: 1.2,
   previewMuted: false,
-  mosaicChannels: [401, 402, 403, 404, 405, 406, 407, 408, 409, 410, 411, 412],
+  mosaicChannels: [1,2,3,4,5,6,12,14,16,17,22,24,37,39,54],
   mosaicCycleSeconds: 30,
   mosaicAudioUrl: "https://www.mp3streams.nl/zender/skyradio/stream/8-mp3-128",
-  m3uUrl: "http://192.168.20.186:9191/output/m3u",
-  xmltvUrl: "http://192.168.20.186:9191/output/epg",
+  m3uUrl: "http://192.168.20.186:9191/output/m3u/RetroCable",
+  xmltvUrl: "http://192.168.20.186:9191/output/epg/RetroCable",
   proxyPath: "/api/guide",
   refreshMinutes: 5,
   timeFormat: "12h",
@@ -32,7 +32,7 @@ export const APP_CONFIG = {
   stripNamePrefixes: true,
   channelLimit: 0,
   fallbackToDemoData: true,
-  crtEffect: true,
+  crtEffect: false,
   headerTagline: "Full listings on teletext",
   promos: [
     {
