@@ -10,7 +10,8 @@ const IS_NYNEX = APP_CONFIG.guideStyle === "nynex";
 const SHOW_PROMOS = APP_CONFIG.previewContentMode === "promo";
 const FRAME_WIDTH = 720;
 const FRAME_HEIGHT = 576;
-const TITLE_SAFE_SCALE = 0.9; // 10% inset — PAL title-safe area
+// PAL action-safe: scale content ~5% to keep edges within CRT overscan
+const ACTION_SAFE_SCALE = 0.9;
 const LEFT_PANEL_WIDTH = 287;
 const RIGHT_PANEL_WIDTH = FRAME_WIDTH - LEFT_PANEL_WIDTH;
 const TOP_TOTAL_HEIGHT = Math.round(RIGHT_PANEL_WIDTH * 3 / 4);
@@ -708,15 +709,6 @@ function NowOnPanel({ channel, programme }) {
 // --- LIVE WINDOW ---
 function LiveWindow({ channel, programme, videoUrl, onPlaybackError }) {
   const hue = ((channel?.num || 0) * 27) % 360;
-  const previewWidth = 768;
-  const previewHeight = FRAME_HEIGHT;
-  const safeInsetX = 20;
-  const safeInsetTop = 12;
-  const safeInsetBottom = 18;
-  const previewRegionHeight = TOP_TOTAL_HEIGHT;
-  const scale = previewRegionHeight / previewHeight;
-  const scaledWidth = previewWidth * scale;
-  const offsetX = (RIGHT_PANEL_WIDTH - scaledWidth) / 2;
   const [videoFailed, setVideoFailed] = useState(false);
   const [cropToFourThree, setCropToFourThree] = useState(false);
   const videoRef = useRef(null);
@@ -905,28 +897,8 @@ function LiveWindow({ channel, programme, videoUrl, onPlaybackError }) {
       position: "absolute",
       inset: 0,
       overflow: "hidden",
-      background: "#12070d",
+      background: `linear-gradient(180deg, hsl(${hue} 40% 24%), hsl(${(hue + 35) % 360} 34% 14%))`,
     }}>
-      <div style={{
-        position: "absolute",
-        left: `${offsetX}px`,
-        top: "0",
-        width: `${previewWidth}px`,
-        height: `${previewHeight}px`,
-        transform: `scale(${scale})`,
-        transformOrigin: "top left",
-        overflow: "hidden",
-        background: "#000000",
-      }}>
-        <div style={{
-          position: "absolute",
-          left: `${safeInsetX}px`,
-          top: `${safeInsetTop}px`,
-          right: `${safeInsetX}px`,
-          bottom: `${safeInsetBottom}px`,
-          overflow: "hidden",
-          background: `linear-gradient(180deg, hsl(${hue} 40% 24%), hsl(${(hue + 35) % 360} 34% 14%))`,
-        }}>
           <video
             ref={videoRef}
             autoPlay
@@ -938,7 +910,7 @@ function LiveWindow({ channel, programme, videoUrl, onPlaybackError }) {
               inset: 0,
               width: "100%",
               height: "100%",
-              objectFit: cropToFourThree ? "cover" : "contain",
+              objectFit: "cover",
               objectPosition: "center",
               background: "#000000",
               filter: "brightness(0.9) contrast(0.95)",
@@ -994,8 +966,6 @@ function LiveWindow({ channel, programme, videoUrl, onPlaybackError }) {
             }} />
             </>
           ) : null}
-        </div>
-      </div>
     </div>
   );
 }
@@ -1206,7 +1176,7 @@ export default function RetroCableGuide() {
     <div style={{
       width: "720px",
       height: "576px",
-      transform: `scale(${TITLE_SAFE_SCALE})`,
+      transform: `scale(${ACTION_SAFE_SCALE})`,
       transformOrigin: "center center",
       display: "grid",
       gridTemplateColumns: `${START_COL_WIDTH}px ${LEFT_CHANNEL_WIDTH}px ${NOW_HEADER_WIDTH}px ${TELE_TEXT_WIDTH}px`,
