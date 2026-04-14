@@ -1,0 +1,35 @@
+version: 2
+updates:
+  # npm deps — React/Vite bundle is shipped to users, so treat bumps as fix.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      npm-dependencies:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+    commit-message:
+      prefix: "fix"
+      include: scope
+
+  # GitHub Actions — CI-only, no bundle impact, don't cut releases.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      actions-dependencies:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: "ci"
+      include: scope
